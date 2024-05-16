@@ -4,7 +4,7 @@ import re
 
 dir_name = "./data/"
 file_name = "140823.xlsx"
-output_excel_file = "output_excel_file.xlsx"  # Replace with your desired output file path
+output_excel_file = "output_010324.xlsx"  # Replace with your desired output file path
 
 # Use os.path.join to construct the file path
 file_path = os.path.join(dir_name, file_name)
@@ -23,7 +23,10 @@ materia_list = [
     "Fundamentos de Ing de software",
     "Ingeniería de software ágil 1",
     "Ingeniería de software ágil 2",
-    "Interacción humano-computadora"
+    " Calidad en software",
+    "Interacción humano-computadora",
+    "Tec. de negoc. para equip proy",
+    "Hab de equipo en desar de soft"
 ]
 
 # Initialize an empty DataFrame to store filtered rows
