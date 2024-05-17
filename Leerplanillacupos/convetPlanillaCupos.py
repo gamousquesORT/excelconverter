@@ -3,8 +3,8 @@ import os
 import re
 
 dir_name = "./data/"
-file_name = "140823.xlsx"
-output_excel_file = "output_010324.xlsx"  # Replace with your desired output file path
+file_name = "030323.xlsx"
+output_excel_file = "output_" + file_name  # Replace with your desired output file path
 
 # Use os.path.join to construct the file path
 file_path = os.path.join(dir_name, file_name)
