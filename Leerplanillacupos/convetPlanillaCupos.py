@@ -18,7 +18,8 @@ materia_list = [
     " Calidad en software",
     "Interacción humano-computadora",
     "Tec. de negoc. para equip proy",
-    "Hab de equipo en desar de soft"
+    "Hab de equipo en desar de soft",
+    "Diseño centrado en el usuario"
 ]
 
 files = os.listdir ( dir_name )
