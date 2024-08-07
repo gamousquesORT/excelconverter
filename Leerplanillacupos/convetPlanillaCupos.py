@@ -8,6 +8,7 @@ dir_name = "./data/"
 materia_list = [
     "Arq. de soft. en la práctica",
     "Arquitectura de software",
+    "Arq.de soft.en la práctica",
     "Arquitecturas Serverless",
     "Desarrollo de prod. base Tec.",
     "Diseño de aplicaciones 1",
@@ -19,6 +20,7 @@ materia_list = [
     "Interacción humano-computadora",
     "Tec. de negoc. para equip proy",
     "Hab de equipo en desar de soft",
+    " Gestión de com, confl en proy",
     "Diseño centrado en el usuario"
 ]
 
@@ -57,7 +59,7 @@ for file in files:
             if row['Materia'].lower().strip() in materia_list:
                 # Try splitting the value in Ins_Cupos
                 try:
-                    inscriptos, cupos = row['Ins_Cupo'].split('/')
+                    inscriptos, cupos = row['Ins/Cupo'].split('/')
                     # Add Inscriptos and Cupos columns to the row
                     row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
                     row['Cupos'] = cupos.strip()
