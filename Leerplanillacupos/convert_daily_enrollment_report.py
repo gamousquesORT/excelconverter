@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import re
 from check_valid_file_and_data_properties import valid_excel_file
 from check_valid_file_and_data_properties import get_dataframe_for_enrollment_sheet
 
@@ -25,6 +26,8 @@ materia_list = [
     "Diseño centrado en el usuario"
 ]
 
+date_pattern = r'\b(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{2}\b'
+
 files = os.listdir(file_path)
 
 valid_columns_to_split = {
@@ -32,7 +35,10 @@ valid_columns_to_split = {
     "Ins_Cupo": "_"
 }
 
+def is_string(cell):
+    return isinstance(cell, str)
 
+date_regex = re.compile(date_pattern)
 
 # Iterate over each file in the directory
 for file in files:
@@ -40,6 +46,8 @@ for file in files:
     split_column = None
     materia_marker_found = False
     row_index = 0
+    date_to_insert = None
+
     # Check if the file is an Excel file
     if valid_excel_file(file):
         try:
@@ -61,16 +69,16 @@ for file in files:
                 row_index = row_index + 1
                 continue
 
-            print("index is:", row_index)
-            print("the excel row is:")
-            print(df.iloc[row_index])
-
-
-            print("cell value is:")
-            print(df.iloc[row_index, 3])
 
             # Convert the list to lower case and strip spaces
-            if "LISTADO DE INSCRTIPTOS" in row.values:
+            cell_value = df.iloc[row_index,0]
+            print(cell_value)
+            if type(cell_value) == str and "LISTADO" in df.iloc[row_index,0] :
+                fecha_str = df.iloc[row_index , 0]
+
+                date_match = date_regex.search(df.iloc[row_index, 0])
+                if date_match:
+                    date_to_insert = date_match.group()
                 row_index = row_index + 1
                 continue
 
@@ -92,6 +100,7 @@ for file in files:
                         # Add Inscriptos and Cupos columns to the row
                         row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
                         row['Cupos'] = cupos.strip()
+                        row['Fecha'] = date_to_insert.strip()  # remove leading/trailing spaces
                         # Append the row to the filtered_rows list
                         filtered_rows.append(row)
                     except ValueError:
