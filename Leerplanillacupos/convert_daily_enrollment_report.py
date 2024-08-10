@@ -26,19 +26,21 @@ materia_list = [
     "Diseño centrado en el usuario"
 ]
 
-date_pattern = r'\b(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{2}\b'
+inline_text_date_pattern = r'\b(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{2}\b'
+file_date_pattern = r'\b(\d{2})(\d{2})(\d{2})\b|\b(\d{2})\s(\d{2})\s(\d{2})\b'
 
 files = os.listdir(file_path)
 
 valid_columns_to_split = {
     "Ins/Cupo": "/" ,
-    "Ins_Cupo": "_"
+    "Ins_Cupo": "/"
 }
 
 def is_string(cell):
     return isinstance(cell, str)
 
-date_regex = re.compile(date_pattern)
+inline_text_date_regex = re.compile(inline_text_date_pattern)
+file_date_regex = re.compile(file_date_pattern)
 
 # Iterate over each file in the directory
 for file in files:
@@ -47,6 +49,8 @@ for file in files:
     materia_marker_found = False
     row_index = 0
     date_to_insert = None
+    named_column_mode = False
+    eof_reached = False
 
     # Check if the file is an Excel file
     if valid_excel_file(file):
@@ -62,41 +66,46 @@ for file in files:
 
         # Iterate over each row
         for index , row in df.iterrows():
-
+            if eof_reached:
+                break
+            # Convert the list to lower case and strip spaces
+            cell_value = df.iloc[row_index,0]
+            print("row: ", row)
 
             # Check if 'Id' column is empty or NaN
             if row.isnull().all():
                 row_index = row_index + 1
                 continue
 
-
-            # Convert the list to lower case and strip spaces
-            cell_value = df.iloc[row_index,0]
-            print(cell_value)
             if type(cell_value) == str and "LISTADO" in df.iloc[row_index,0] :
                 fecha_str = df.iloc[row_index , 0]
 
-                date_match = date_regex.search(df.iloc[row_index, 0])
+                date_match = inline_text_date_regex.search(df.iloc[row_index, 0])
                 if date_match:
                     date_to_insert = date_match.group()
                 row_index = row_index + 1
                 continue
 
-            if 'Materia' in row.values and not materia_marker_found:
+            if 'Materia' in df.columns and not materia_marker_found:
                 materia_marker_found = True
-                for value in row.values:
-                    if value in valid_columns_to_split.keys():
-                        split_char = valid_columns_to_split[value]
-                        split_column = str(value)
+                named_column_mode = True
 
-                        break
-                row_index = row_index + 1
-                continue
-            if materia_marker_found:
-                nombre_materia = df.iloc[row_index , 3]
+                #define date based on file name
+                date_match = file_date_regex.search(file)
+                if date_match:
+                    date_to_insert = date_match.group()
+
+                if 'Ins/Cupo' in df.columns:
+                    split_char = valid_columns_to_split['Ins/Cupo']
+                    split_column = 'Ins/Cupo'
+                elif 'Ins_Cupo' in df.columns:
+                    split_char = valid_columns_to_split['Ins_Cupo']
+                    split_column = 'Ins_Cupo'
+
+                nombre_materia = row['Materia']
                 if nombre_materia.strip() in materia_list:
                     try:
-                        inscriptos , cupos = df.iloc[row_index, 6].split(split_char)
+                        inscriptos , cupos = row[split_column].split(split_char)
                         # Add Inscriptos and Cupos columns to the row
                         row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
                         row['Cupos'] = cupos.strip()
@@ -107,7 +116,56 @@ for file in files:
                         # If splitting fails, print a message and continue iterating
                         print("Cannot split Ins_Cupos value in row:" , index)
                         break
-            row_index = row_index + 1
+                    row_index = row_index + 1
+            if 'Materia' in row.values and not materia_marker_found:
+                materia_marker_found = True
+                named_column_mode = False
+
+                for value in row.values:
+                    if value in valid_columns_to_split.keys():
+                        split_char = valid_columns_to_split[value]
+                        split_column = str(value)
+                        break
+                row_index = row_index + 1
+                continue
+            if named_column_mode is False and materia_marker_found:
+                    if is_string(df.iloc[row_index, 3]):
+                        nombre_materia = df.iloc[row_index , 3]
+                        if nombre_materia.strip() in materia_list:
+                            try:
+                                inscriptos , cupos = df.iloc[row_index, 6].split(split_char)
+                                # Add Inscriptos and Cupos columns to the row
+                                row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
+                                row['Cupos'] = cupos.strip()
+                                row['Fecha'] = date_to_insert.strip()  # remove leading/trailing spaces
+                                # Append the row to the filtered_rows list
+                                filtered_rows.append(row)
+                            except ValueError:
+                                # If splitting fails, print a message and continue iterating
+                                print("Cannot split Ins_Cupos value in row:" , index)
+                                break
+                    row_index = row_index + 1
+
+            if named_column_mode is True and materia_marker_found:
+                if 'Tipo dictado' in df.columns:
+                    if 'Se imprimieron'in row['Tipo dictado']:
+                        eof_reached = True
+                        continue
+                nombre_materia = row['Materia']
+                if nombre_materia.strip() in materia_list:
+                    try:
+                        inscriptos , cupos = row[split_column].split(split_char)
+                        # Add Inscriptos and Cupos columns to the row
+                        row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
+                        row['Cupos'] = cupos.strip()
+                        row['Fecha'] = date_to_insert.strip()  # remove leading/trailing spaces
+                        # Append the row to the filtered_rows list
+                        filtered_rows.append(row)
+                    except ValueError:
+                        # If splitting fails, print a message and continue iterating
+                        print("Cannot split Ins_Cupos value in row:" , index)
+                        break
+
 
         # Create a DataFrame from the filtered rows
         filtered_df = pd.DataFrame(filtered_rows)
