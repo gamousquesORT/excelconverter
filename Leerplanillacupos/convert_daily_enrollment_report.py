@@ -3,7 +3,7 @@ import os
 import re
 from check_valid_file_and_data_properties import valid_excel_file
 from check_valid_file_and_data_properties import get_dataframe_for_enrollment_sheet
-
+from name_unnamed_columns import rename_unamed_columns
 file_path: str = "./data/"
 
 # List of Materia values to filter
@@ -133,6 +133,8 @@ for file in files:
         try:
             # Get the DataFrame for the file
             df = get_dataframe_for_enrollment_sheet(file , file_path)
+            rename_unamed_columns(df)
+
         except ValueError as e:
             print(e)
             continue
