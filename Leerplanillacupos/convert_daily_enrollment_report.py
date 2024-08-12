@@ -63,8 +63,13 @@ def insert_course_session_named():
     try:
         inscriptos , cupos = row[split_column].split(split_char)
         # Add Inscriptos and Cupos columns to the row
-        row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
-        row['Cupos'] = cupos.strip()
+        row['Inscriptos'] = int(inscriptos.strip())  # remove leading/trailing spaces
+
+        if 'æ' == cupos.strip():
+            row['Cupos'] = cupos.strip()
+        else:
+            row['Cupos'] = int(cupos.strip())  # remove leading/trailing spaces
+
         row['Fecha'] = date_object
         # Append the row to the filtered_rows list
         filtered_rows.append(row)
@@ -138,7 +143,7 @@ for file in files:
                 break
 
             # Check if 'Id' column is empty or NaN
-            if row.isnull().all():
+            if row.isnull().all() or row.isna().any():
                 row_index = row_index + 1
                 continue
 
@@ -147,6 +152,7 @@ for file in files:
             if type(cell_value) == str and "LISTADO" in df.iloc[row_index,0] :
                 insert_date_to_row_unnamed()
                 continue
+
 
 
             if 'Tipo dictado' in df.columns:
