@@ -4,6 +4,8 @@ import re
 from check_valid_file_and_data_properties import valid_excel_file
 from check_valid_file_and_data_properties import get_dataframe_for_enrollment_sheet
 from name_unnamed_columns import rename_unamed_columns
+from datetime import datetime
+
 file_path: str = "./data/"
 
 # List of Materia values to filter
@@ -45,7 +47,6 @@ file_date_pattern = r'\b(\d{2})(\d{2})(\d{2})\b|\b(\d{2})\s(\d{2})\s(\d{2})\b'
 file_date_regex = re.compile(file_date_pattern)
 
 
-
 def select_split_char_named():
     global split_char , split_column
     if 'Ins/Cupo' in df.columns:
@@ -56,43 +57,50 @@ def select_split_char_named():
         split_column = 'Ins_Cupo'
 
 
+
 def insert_course_session_named():
     global inscriptos , cupos , row_index
-    inscriptos , cupos = row[split_column].split(split_char)
-    # Add Inscriptos and Cupos columns to the row
-    row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
-    row['Cupos'] = cupos.strip()
-    row['Fecha'] = date_to_insert.strip()  # remove leading/trailing spaces
-    # Append the row to the filtered_rows list
-    filtered_rows.append(row)
+    try:
+        inscriptos , cupos = row[split_column].split(split_char)
+        # Add Inscriptos and Cupos columns to the row
+        row['Inscriptos'] = inscriptos.strip()  # remove leading/trailing spaces
+        row['Cupos'] = cupos.strip()
+        row['Fecha'] = date_object
+        # Append the row to the filtered_rows list
+        filtered_rows.append(row)
+    except ValueError:
+        raise ValueError("Cannot insert row:", row)
 
 
 
 def set_date_to_insert_named():
-    global date_match , date_to_insert
+    global date_match , date_to_insert, date_object
     # define date based on file name
     date_match = file_date_regex.search(file)
     if date_match:
         date_to_insert = date_match.group()
+        date_string = date_to_insert.strip().replace(" ", "")  # remove leading/trailing spaces
+        date_object = datetime.strptime(date_string, "%d%m%y")
 
 
 def insert_date_to_row_unnamed():
-    global date_match , date_to_insert , row_index
+    global date_match , date_to_insert , row_index, date_object
     fecha_str = df.iloc[row_index , 0]
     date_match = inline_text_date_regex.search(df.iloc[row_index , 0])
     if date_match:
         date_to_insert = date_match.group()
+        date_string = date_to_insert.strip()  # remove leading/trailing spaces
+        date_object = datetime.strptime(date_string, "%d/%m/%y")
+
     row_index = row_index + 1
 
 
 def init_file_processing_variables():
-    global split_char , split_column , materia_marker_found , row_index , date_to_insert , named_column_mode , eof_reached
+    global split_char , split_column , row_index, date_to_insert , eof_reached
     split_char = None
     split_column = None
-    materia_marker_found = False
     row_index = 0
     date_to_insert = None
-    named_column_mode = False
     eof_reached = False
 
 
