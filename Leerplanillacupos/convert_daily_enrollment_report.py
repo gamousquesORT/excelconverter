@@ -96,32 +96,33 @@ def insert_date_to_row_unnamed():
 
 
 def init_file_processing_variables():
-    global split_char , split_column , row_index, date_to_insert , eof_reached
+    global split_char , split_column , row_index , eof_reached
     split_char = None
     split_column = None
     row_index = 0
-    date_to_insert = None
     eof_reached = False
+
 
 
 def generate_output_file():
     # Create a DataFrame from the filtered rows
     filtered_df = pd.DataFrame(filtered_rows)
-    output_excel_file = "output_" + file
+    output_excel_file = "output_" + output_file_name
     # Write the filtered DataFrame to a new Excel sheet
     filtered_df.to_excel(output_excel_file , index=False)
     print("Filtered rows with new columns written to" , output_excel_file)
 
 
 # Iterate over each file in the directory
+filtered_rows = []
 for file in files:
 
     init_file_processing_variables()
-    filtered_rows = []
 
     if valid_excel_file(file):
         try:
             # Get the DataFrame for the file
+            output_file_name = file
             df = get_dataframe_for_enrollment_sheet(file , file_path)
             rename_unamed_columns(df)
             select_split_char_named()
@@ -162,4 +163,4 @@ for file in files:
                     print("Cannot split Ins_Cupos value in row:" , index)
                     break
 
-        generate_output_file()
+generate_output_file()
