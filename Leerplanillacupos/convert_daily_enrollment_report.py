@@ -1,10 +1,13 @@
-import pandas as pd
 import os
 import re
-from check_valid_file_and_data_properties import valid_excel_file
-from check_valid_file_and_data_properties import get_dataframe_for_enrollment_sheet
-from name_unnamed_columns import rename_unamed_columns
 from datetime import datetime
+
+import pandas as pd
+
+from check_valid_file_and_data_properties import get_dataframe_for_enrollment_sheet
+from check_valid_file_and_data_properties import valid_excel_file
+from column_data_class import Column
+from name_unnamed_columns import rename_unamed_columns
 
 file_path: str = "./data/"
 
@@ -25,9 +28,9 @@ materia_list = [
     "Tec. de negoc. para equip proy" ,
     "Hab de equipo en desar de soft" ,
     " Gestión de com, confl en proy" ,
-    "Diseño centrado en el usuario"
+    "Diseño centrado en el usuario",
+    'Gestión de com , confl en proy'
 ]
-
 
 
 files = os.listdir(file_path)
@@ -36,6 +39,18 @@ valid_columns_to_split = {
     "Ins/Cupo": "/" ,
     "Ins_Cupo": "/"
 }
+
+columns = {column.name: column for column in [
+    Column(0 , 0 , 'Id' , 'Id' , False , '9999') ,
+    Column(1 , 0 , 'Nombre' , 'Nombre' , False , 'SN') ,
+    Column(2 , 0 , 'Número Materia' , 'Número Materia' , False , '9999') ,
+    Column(3 , 0 , 'Materia' , 'Materia' , False , 'Sin_Nombre') ,
+    Column(4 , 0 , 'Comienzo' , 'Comienzo' , False , 'NA') ,
+    Column(5 , 0 , 'Docente' , 'Docente' , False , 'NA') ,
+    Column(6 , 0 , 'Ins/Cupo' , 'Ins_Cupo' , False , '0/0') ,
+    Column(7 , 0 , 'Tipo dictado' , 'Tipo dictado' , False , 'NA') ,
+    Column(8 , 0 , 'Fecha' , 'Fecha' , False , datetime.now().strftime("%d%m%y")) ,
+]}
 
 def is_string(cell):
     return isinstance(cell, str)
@@ -55,6 +70,8 @@ def select_split_char_named():
     elif 'Ins_Cupo' in df.columns:
         split_char = valid_columns_to_split['Ins_Cupo']
         split_column = 'Ins_Cupo'
+    else:
+        raise ValueError("Cannot find Ins/Cupo or Ins_Cupo column in file:", file)
 
 
 
@@ -117,9 +134,16 @@ def generate_output_file():
     filtered_df.to_excel(output_excel_file , index=False)
     print("Filtered rows with new columns written to" , output_excel_file)
 
+def replace_nan_in_row(df, row_index, replacement_value):
+    # Iterate through the values of the specified row
+    for col in df.columns:
+        if pd.isna(df.at[row_index, col]):
+            df.at[row_index, col] = replacement_value
 
 # Iterate over each file in the directory
 filtered_rows = []
+output_file_name = today_date_str = datetime.today().strftime('%Y%m%d')
+
 for file in files:
 
     init_file_processing_variables()
@@ -127,25 +151,28 @@ for file in files:
     if valid_excel_file(file):
         try:
             # Get the DataFrame for the file
-            output_file_name = file
+
             df = get_dataframe_for_enrollment_sheet(file , file_path)
-            rename_unamed_columns(df)
+
+            rename_unamed_columns(df , columns)
+            df.fillna('NA', inplace=True)
+
             select_split_char_named()
             set_date_to_insert_named() # use default date found in file
+
 
         except ValueError as e:
             print(e)
             continue
 
+
         # Iterate over each row
         for index , row in df.iterrows():
-            if eof_reached:
-                break
 
-            # Check if 'Id' column is empty or NaN
+
+            # Check if a column is empty or NaN
             if row.isnull().all() or row.isna().any():
                 row_index = row_index + 1
-                continue
 
             # Convert the list to lower case and strip spaces
             cell_value = df.iloc[row_index,0]
@@ -153,12 +180,6 @@ for file in files:
                 insert_date_to_row_unnamed()
                 continue
 
-
-
-            if 'Tipo dictado' in df.columns:
-                if 'Se imprimieron'in row['Tipo dictado']:
-                    eof_reached = True
-                    continue
 
             nombre_materia = row['Materia']
             if nombre_materia.strip() in materia_list:
