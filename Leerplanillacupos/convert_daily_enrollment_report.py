@@ -25,10 +25,14 @@ materia_list = [
     "Tec. de negoc. para equip proy" ,
     "Hab de equipo en desar de soft" ,
     " Gestión de com, confl en proy" ,
-    "Diseño centrado en el usuario"
+    "Diseño centrado en el usuario",
+    "Habil gerenc en grupos proyect"
 ]
 
-
+global inscriptos, cupos, row_index
+global split_char, split_column
+global date_match, date_to_insert, date_obj
+global eof_reached
 
 files = os.listdir(file_path)
 
@@ -47,7 +51,7 @@ file_date_pattern = r'\b(\d{2})(\d{2})(\d{2})\b|\b(\d{2})\s(\d{2})\s(\d{2})\b'
 file_date_regex = re.compile(file_date_pattern)
 
 
-def select_split_char_named():
+def select_split_char_named(df):
     global split_char , split_column
     if 'Ins/Cupo' in df.columns:
         split_char = valid_columns_to_split['Ins/Cupo']
@@ -58,7 +62,7 @@ def select_split_char_named():
 
 
 
-def insert_course_session_named():
+def insert_course_session_named(df, row):
     global inscriptos , cupos , row_index
     try:
         inscriptos , cupos = row[split_column].split(split_char)
@@ -78,7 +82,7 @@ def insert_course_session_named():
 
 
 
-def set_date_to_insert_named():
+def set_date_to_insert_named(file):
     global date_match , date_to_insert, date_object
     # define date based on file name
     date_match = file_date_regex.search(file)
@@ -88,7 +92,7 @@ def set_date_to_insert_named():
         date_object = datetime.strptime(date_string, "%d%m%y")
 
 
-def insert_date_to_row_unnamed():
+def insert_date_to_row_unnamed(df):
     global date_match , date_to_insert , row_index, date_object
     fecha_str = df.iloc[row_index , 0]
     date_match = inline_text_date_regex.search(df.iloc[row_index , 0])
@@ -118,55 +122,64 @@ def generate_output_file():
     print("Filtered rows with new columns written to" , output_excel_file)
 
 
-# Iterate over each file in the directory
-filtered_rows = []
-for file in files:
+def main():
 
-    init_file_processing_variables()
+    # Iterate over each file in the directory
 
-    if valid_excel_file(file):
-        try:
-            # Get the DataFrame for the file
-            output_file_name = file
-            df = get_dataframe_for_enrollment_sheet(file , file_path)
-            rename_unamed_columns(df)
-            select_split_char_named()
-            set_date_to_insert_named() # use default date found in file
+    global eof_reached, row_index, filtered_rows, output_file_name
+    eof_reached = False
 
-        except ValueError as e:
-            print(e)
-            continue
+    filtered_rows = []
+    for file in files:
 
-        # Iterate over each row
-        for index , row in df.iterrows():
-            if eof_reached:
-                break
+        init_file_processing_variables()
 
-            # Check if 'Id' column is empty or NaN
-            if row.isnull().all() or row.isna().any():
-                row_index = row_index + 1
+        if valid_excel_file(file):
+            try:
+                # Get the DataFrame for the file
+                output_file_name = file
+                df = get_dataframe_for_enrollment_sheet(file , file_path)
+                rename_unamed_columns(df)
+                select_split_char_named(df)
+                set_date_to_insert_named(file) # use default date found in file
+
+            except ValueError as e:
+                print(e)
                 continue
 
-            # Convert the list to lower case and strip spaces
-            cell_value = df.iloc[row_index,0]
-            if type(cell_value) == str and "LISTADO" in df.iloc[row_index,0] :
-                insert_date_to_row_unnamed()
-                continue
-
-
-
-            if 'Tipo dictado' in df.columns:
-                if 'Se imprimieron'in row['Tipo dictado']:
-                    eof_reached = True
-                    continue
-
-            nombre_materia = row['Materia']
-            if nombre_materia.strip() in materia_list:
-                try:
-                    insert_course_session_named()
-                except ValueError:
-                    # If splitting fails, print a message and continue iterating
-                    print("Cannot split Ins_Cupos value in row:" , index)
+            # Iterate over each row
+            for index , row in df.iterrows():
+                if eof_reached:
                     break
 
-generate_output_file()
+                # Check if 'Id' column is empty or NaN
+                if row.isnull().all() or row.isna().any():
+                    row_index = row_index + 1
+                    continue
+
+                # Convert the list to lower case and strip spaces
+                cell_value = df.iloc[row_index,0]
+                if type(cell_value) == str and "LISTADO" in df.iloc[row_index,0] :
+                    insert_date_to_row_unnamed(df)
+                    continue
+
+
+
+                if 'Tipo dictado' in df.columns:
+                    if 'Se imprimieron'in row['Tipo dictado']:
+                        eof_reached = True
+                        continue
+
+                nombre_materia = row['Materia']
+                if nombre_materia.strip() in materia_list:
+                    try:
+                        insert_course_session_named(df, row)
+                    except ValueError:
+                        # If splitting fails, print a message and continue iterating
+                        print("Cannot split Ins_Cupos value in row:" , index)
+                        break
+
+        generate_output_file()
+
+if __name__ == "__main__":
+    main()
