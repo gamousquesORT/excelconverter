@@ -179,7 +179,7 @@ def main():
                         print("Cannot split Ins_Cupos value in row:" , index)
                         break
 
-        generate_output_file()
+    generate_output_file()
 
 if __name__ == "__main__":
     main()
